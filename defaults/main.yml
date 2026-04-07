@@ -5,7 +5,7 @@ ludus_jenkins_http_port: 8080
 # Java package to install
 ludus_jenkins_java_packages:
   - fontconfig
-  - openjdk-17-jre
+  - openjdk-21-jre
 
 # Jenkins version (empty string = latest)
 ludus_jenkins_version: ""

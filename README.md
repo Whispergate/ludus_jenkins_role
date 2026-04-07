@@ -7,7 +7,7 @@ An Ansible Role that installs [Jenkins](https://www.jenkins.io/) on Debian/Ubunt
 
 ## Requirements
 
-None. Java (OpenJDK 17) is installed automatically.
+None. Java (OpenJDK 21) is installed automatically.
 
 ## Role Variables
 
@@ -19,7 +19,7 @@ Available variables are listed below, along with default values (see `defaults/m
     # Java packages to install
     ludus_jenkins_java_packages:
       - fontconfig
-      - openjdk-17-jre
+      - openjdk-21-jre
 
     # Jenkins version (empty string = latest)
     ludus_jenkins_version: ""
