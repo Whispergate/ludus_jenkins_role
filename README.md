@@ -16,8 +16,10 @@ Available variables are listed below, along with default values (see `defaults/m
     # Port Jenkins will listen on
     ludus_jenkins_http_port: 8080
 
-    # Java package(s) to install
-    ludus_jenkins_java_package: fontconfig openjdk-17-jre
+    # Java packages to install
+    ludus_jenkins_java_packages:
+      - fontconfig
+      - openjdk-17-jre
 
     # Jenkins version (empty string = latest)
     ludus_jenkins_version: ""

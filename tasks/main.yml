@@ -10,7 +10,7 @@
 
 - name: Install Java
   ansible.builtin.apt:
-    name: "{{ ludus_jenkins_java_package }}"
+    name: "{{ ludus_jenkins_java_packages }}"
     state: present
 
 - name: Create keyrings directory
