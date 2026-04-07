@@ -28,9 +28,14 @@
     ludus_download_file_host_path: /etc/apt/keyrings
     ludus_download_file_force_download: true
 
+- name: Dearmor Jenkins repository key
+  ansible.builtin.shell:
+    cmd: gpg --dearmor < /etc/apt/keyrings/jenkins-keyring.asc > /etc/apt/keyrings/jenkins-keyring.gpg
+    creates: /etc/apt/keyrings/jenkins-keyring.gpg
+
 - name: Add Jenkins apt repository
   ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian binary/"
+    repo: "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.gpg] https://pkg.jenkins.io/debian binary/"
     state: present
     filename: jenkins
 
