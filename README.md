@@ -1,28 +1,36 @@
 # Ansible Role: Jenkins ([Ludus](https://ludus.cloud))
 
-An Ansible Role that installs [Jenkins](https://www.jenkins.io/) on Debian/Ubuntu hosts and optionally configures an admin user and plugins.
+An Ansible Role that installs [Jenkins](https://www.jenkins.io/) via Docker on Debian/Ubuntu hosts and optionally configures an admin user and plugins.
 
 > [!WARNING]
 > The default admin credentials are `admin:admin`. Change `ludus_jenkins_admin_password` for any non-ephemeral environment.
 
 ## Requirements
 
-None. Java (OpenJDK 21) is installed automatically.
+None. Docker is installed automatically via the `geerlingguy.docker` dependency.
 
 ## Role Variables
 
 Available variables are listed below, along with default values (see `defaults/main.yml`):
 
-    # Port Jenkins will listen on
+    # Port Jenkins will listen on (mapped to host)
     ludus_jenkins_http_port: 8080
 
-    # Java packages to install
-    ludus_jenkins_java_packages:
-      - fontconfig
-      - openjdk-21-jre
+    # Jenkins agent port (mapped to host)
+    ludus_jenkins_agent_port: 50000
 
-    # Jenkins version (empty string = latest)
-    ludus_jenkins_version: ""
+    # Jenkins Docker image and tag
+    ludus_jenkins_docker_image: jenkins/jenkins
+    ludus_jenkins_docker_tag: lts-jdk21
+
+    # Jenkins container name
+    ludus_jenkins_container_name: jenkins
+
+    # Docker network name for Jenkins
+    ludus_jenkins_docker_network: jenkins
+
+    # Jenkins data volume name
+    ludus_jenkins_data_volume: jenkins-data
 
     # Whether to skip the initial setup wizard
     ludus_jenkins_skip_setup_wizard: true
@@ -40,12 +48,13 @@ Available variables are listed below, along with default values (see `defaults/m
     # Additional Java arguments for Jenkins
     ludus_jenkins_java_args: ""
 
-    # Jenkins home directory
-    ludus_jenkins_home: /var/lib/jenkins
+    # Jenkins home directory inside the container
+    ludus_jenkins_home: /var/jenkins_home
 
 ## Dependencies
 
-None.
+- `geerlingguy.docker`
+- `community.docker` collection
 
 ## Example Playbook
 

@@ -1,26 +1,15 @@
 ---
-- name: Download Jenkins CLI jar
-  ansible.builtin.get_url:
-    url: "http://localhost:{{ ludus_jenkins_http_port }}/jnlpJars/jenkins-cli.jar"
-    dest: /tmp/jenkins-cli.jar
-    mode: "0644"
-
-- name: Install Jenkins plugins
-  ansible.builtin.command:
-    cmd: >
-      java -jar /tmp/jenkins-cli.jar
-      -s http://localhost:{{ ludus_jenkins_http_port }}/
-      -auth {{ ludus_jenkins_admin_user }}:{{ ludus_jenkins_admin_password }}
-      install-plugin {{ item }}
-  loop: "{{ ludus_jenkins_plugins }}"
+- name: Install Jenkins plugins via CLI inside container
+  community.docker.docker_container_exec:
+    container: "{{ ludus_jenkins_container_name }}"
+    command: jenkins-plugin-cli --plugins {{ ludus_jenkins_plugins | join(' ') }}
   register: plugin_result
-  changed_when: "'already installed' not in plugin_result.stdout"
-  failed_when: plugin_result.rc != 0
+  changed_when: "'Done' in plugin_result.stdout"
 
 - name: Restart Jenkins after plugin install
-  ansible.builtin.systemd:
-    name: jenkins
-    state: restarted
+  community.docker.docker_container:
+    name: "{{ ludus_jenkins_container_name }}"
+    restart: true
 
 - name: Wait for Jenkins to come back up after plugin install
   ansible.builtin.uri:

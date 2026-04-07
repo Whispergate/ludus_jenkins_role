@@ -1,10 +1,11 @@
 ---
-dependencies: []
+dependencies:
+  - role: geerlingguy.docker
 
 galaxy_info:
   role_name: ludus_jenkins
   author: Whispergate
-  description: An Ansible Role that installs Jenkins CI/CD server on Debian/Ubuntu hosts for Ludus
+  description: An Ansible Role that installs Jenkins CI/CD server via Docker for Ludus
   company: ""
   license: MIT
   min_ansible_version: "2.10"
@@ -24,5 +25,7 @@ galaxy_info:
     - cd
     - automation
     - ludus
+    - docker
 
-collections: []
+collections:
+  - community.docker

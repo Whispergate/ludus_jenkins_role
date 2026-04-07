@@ -1,17 +1,18 @@
 ---
-- name: Create Jenkins init groovy directory
-  ansible.builtin.file:
-    path: "{{ ludus_jenkins_home }}/init.groovy.d"
-    state: directory
-    owner: jenkins
-    group: jenkins
-    mode: "0755"
+- name: Create Jenkins init groovy directory in container
+  community.docker.docker_container_exec:
+    container: "{{ ludus_jenkins_container_name }}"
+    command: mkdir -p {{ ludus_jenkins_home }}/init.groovy.d
 
-- name: Deploy admin user creation script
+- name: Deploy admin user creation script to container
   ansible.builtin.template:
     src: create_admin.groovy.j2
-    dest: "{{ ludus_jenkins_home }}/init.groovy.d/01-create-admin.groovy"
-    owner: jenkins
-    group: jenkins
+    dest: /tmp/01-create-admin.groovy
     mode: "0644"
+
+- name: Copy admin script into container
+  community.docker.docker_container_copy_into:
+    container: "{{ ludus_jenkins_container_name }}"
+    path: /tmp/01-create-admin.groovy
+    container_path: "{{ ludus_jenkins_home }}/init.groovy.d/01-create-admin.groovy"
   notify: Restart Jenkins

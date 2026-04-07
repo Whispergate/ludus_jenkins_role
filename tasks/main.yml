@@ -1,72 +1,35 @@
 ---
-- name: Install dependencies
-  ansible.builtin.apt:
-    name:
-      - apt-transport-https
-      - ca-certificates
-      - gnupg
-    state: present
-    update_cache: true
-
-- name: Install Java
-  ansible.builtin.apt:
-    name: "{{ ludus_jenkins_java_packages }}"
+- name: Create Jenkins Docker network
+  community.docker.docker_network:
+    name: "{{ ludus_jenkins_docker_network }}"
     state: present
 
-- name: Create keyrings directory
-  ansible.builtin.file:
-    path: /etc/apt/keyrings
-    state: directory
-    mode: "0755"
-
-- name: Download Jenkins repository key
-  ansible.builtin.include_tasks:
-    file: download_file.yml
-  vars:
-    ludus_download_file_name: jenkins-keyring.asc
-    ludus_download_file_url: https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
-    ludus_download_file_host_path: /etc/apt/keyrings
-    ludus_download_file_force_download: true
-
-- name: Add Jenkins apt repository
-  ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/"
+- name: Create Jenkins data volume
+  community.docker.docker_volume:
+    name: "{{ ludus_jenkins_data_volume }}"
     state: present
-    filename: jenkins
 
-- name: Install Jenkins (latest)
-  ansible.builtin.apt:
-    name: jenkins
-    state: present
-    update_cache: true
-  when: ludus_jenkins_version | length == 0
+- name: Build Jenkins environment variables
+  ansible.builtin.set_fact:
+    ludus_jenkins_env:
+      JAVA_OPTS: >-
+        {% if ludus_jenkins_skip_setup_wizard %}-Djenkins.install.runSetupWizard=false{% endif %}
+        {{ ludus_jenkins_java_args }}
 
-- name: Install Jenkins (specific version)
-  ansible.builtin.apt:
-    name: "jenkins={{ ludus_jenkins_version }}"
-    state: present
-    update_cache: true
-  when: ludus_jenkins_version | length > 0
-
-- name: Ensure Jenkins service override directory exists
-  ansible.builtin.file:
-    path: /etc/systemd/system/jenkins.service.d
-    state: directory
-    mode: "0755"
-
-- name: Configure Jenkins port and arguments
-  ansible.builtin.template:
-    src: jenkins_override.conf.j2
-    dest: /etc/systemd/system/jenkins.service.d/override.conf
-    mode: "0644"
-  notify: Restart Jenkins
-
-- name: Enable and start Jenkins
-  ansible.builtin.systemd:
-    name: jenkins
+- name: Run Jenkins container
+  community.docker.docker_container:
+    name: "{{ ludus_jenkins_container_name }}"
+    image: "{{ ludus_jenkins_docker_image }}:{{ ludus_jenkins_docker_tag }}"
     state: started
-    enabled: true
-    daemon_reload: true
+    restart_policy: on-failure
+    networks:
+      - name: "{{ ludus_jenkins_docker_network }}"
+    ports:
+      - "{{ ludus_jenkins_http_port }}:8080"
+      - "{{ ludus_jenkins_agent_port }}:50000"
+    volumes:
+      - "{{ ludus_jenkins_data_volume }}:{{ ludus_jenkins_home }}"
+    env: "{{ ludus_jenkins_env }}"
 
 - name: Wait for Jenkins to start
   ansible.builtin.uri:
