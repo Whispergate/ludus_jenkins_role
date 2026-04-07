@@ -1,0 +1,28 @@
+---
+dependencies: []
+
+galaxy_info:
+  role_name: ludus_jenkins
+  author: Whispergate
+  description: An Ansible Role that installs Jenkins CI/CD server on Debian/Ubuntu hosts for Ludus
+  company: ""
+  license: MIT
+  min_ansible_version: "2.10"
+  platforms:
+    - name: Debian
+      versions:
+        - bullseye
+        - bookworm
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+        - noble
+  galaxy_tags:
+    - jenkins
+    - ci
+    - cd
+    - automation
+    - ludus
+
+collections: []

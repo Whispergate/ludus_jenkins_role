@@ -1,0 +1,7 @@
+[Service]
+Environment="JENKINS_PORT={{ ludus_jenkins_http_port }}"
+{% if ludus_jenkins_skip_setup_wizard %}
+Environment="JAVA_OPTS=-Djenkins.install.runSetupWizard=false {{ ludus_jenkins_java_args }}"
+{% elif ludus_jenkins_java_args | length > 0 %}
+Environment="JAVA_OPTS={{ ludus_jenkins_java_args }}"
+{% endif %}

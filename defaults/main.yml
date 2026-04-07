@@ -1,0 +1,28 @@
+---
+# Port Jenkins will listen on
+ludus_jenkins_http_port: 8080
+
+# Java package to install
+ludus_jenkins_java_package: fontconfig openjdk-17-jre
+
+# Jenkins version (empty string = latest)
+ludus_jenkins_version: ""
+
+# Whether to skip the initial setup wizard
+ludus_jenkins_skip_setup_wizard: true
+
+# List of Jenkins plugins to install
+ludus_jenkins_plugins:
+  - git
+  - workflow-aggregator
+  - configuration-as-code
+
+# Jenkins admin username and password (only used if ludus_jenkins_skip_setup_wizard is true)
+ludus_jenkins_admin_user: admin
+ludus_jenkins_admin_password: admin
+
+# Additional Java arguments for Jenkins
+ludus_jenkins_java_args: ""
+
+# Jenkins home directory
+ludus_jenkins_home: /var/lib/jenkins

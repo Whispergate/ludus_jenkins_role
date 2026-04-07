@@ -1,0 +1,33 @@
+---
+- name: Download Jenkins CLI jar
+  ansible.builtin.get_url:
+    url: "http://localhost:{{ ludus_jenkins_http_port }}/jnlpJars/jenkins-cli.jar"
+    dest: /tmp/jenkins-cli.jar
+    mode: "0644"
+
+- name: Install Jenkins plugins
+  ansible.builtin.command:
+    cmd: >
+      java -jar /tmp/jenkins-cli.jar
+      -s http://localhost:{{ ludus_jenkins_http_port }}/
+      -auth {{ ludus_jenkins_admin_user }}:{{ ludus_jenkins_admin_password }}
+      install-plugin {{ item }}
+  loop: "{{ ludus_jenkins_plugins }}"
+  register: plugin_result
+  changed_when: "'already installed' not in plugin_result.stdout"
+  failed_when: plugin_result.rc != 0
+
+- name: Restart Jenkins after plugin install
+  ansible.builtin.systemd:
+    name: jenkins
+    state: restarted
+
+- name: Wait for Jenkins to come back up after plugin install
+  ansible.builtin.uri:
+    url: "http://localhost:{{ ludus_jenkins_http_port }}/login"
+    method: GET
+    status_code: 200
+  register: jenkins_plugin_status
+  retries: 30
+  delay: 5
+  until: jenkins_plugin_status.status == 200
