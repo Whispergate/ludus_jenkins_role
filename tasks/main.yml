@@ -9,12 +9,6 @@
     name: "{{ ludus_jenkins_data_volume }}"
     state: present
 
-- name: Create Jenkins Docker certs volume
-  community.docker.docker_volume:
-    name: "{{ ludus_jenkins_docker_certs_volume }}"
-    state: present
-  when: ludus_jenkins_enable_dind
-
 - name: Run Docker-in-Docker container
   community.docker.docker_container:
     name: "{{ ludus_jenkins_dind_container_name }}"
@@ -27,12 +21,11 @@
         aliases:
           - docker
     env:
-      DOCKER_TLS_CERTDIR: /certs
+      DOCKER_TLS_CERTDIR: ""
     volumes:
-      - "{{ ludus_jenkins_docker_certs_volume }}:/certs/client"
       - "{{ ludus_jenkins_data_volume }}:{{ ludus_jenkins_home }}"
     published_ports:
-      - "2376:2376"
+      - "2375:2375"
   when: ludus_jenkins_enable_dind
 
 - name: Create Dockerfile build directory
@@ -56,6 +49,20 @@
       path: "{{ ludus_jenkins_dockerfile_build_dir }}"
     state: present
 
+- name: Create JCasC config directory
+  ansible.builtin.file:
+    path: "{{ ludus_jenkins_casc_build_dir }}"
+    state: directory
+    mode: "0755"
+  when: ludus_jenkins_casc_enabled
+
+- name: Deploy JCasC config template
+  ansible.builtin.template:
+    src: jenkins.yaml.j2
+    dest: "{{ ludus_jenkins_casc_build_dir }}/jenkins.yaml"
+    mode: "0644"
+  when: ludus_jenkins_casc_enabled
+
 - name: Build Jenkins environment variables
   ansible.builtin.set_fact:
     ludus_jenkins_env: >-
@@ -66,11 +73,9 @@
             ludus_jenkins_java_args
           ) | trim
         } | combine(
-          {
-            'DOCKER_HOST': 'tcp://docker:2376',
-            'DOCKER_CERT_PATH': '/certs/client',
-            'DOCKER_TLS_VERIFY': '1'
-          } if ludus_jenkins_enable_dind else {}
+          {'DOCKER_HOST': 'tcp://docker:2375'} if ludus_jenkins_enable_dind else {}
+        ) | combine(
+          {'CASC_JENKINS_CONFIG': ludus_jenkins_casc_container_path} if ludus_jenkins_casc_enabled else {}
         )
       }}
 
@@ -89,7 +94,8 @@
     volumes: >-
       {{
         [ludus_jenkins_data_volume + ':' + ludus_jenkins_home] +
-        ([ludus_jenkins_docker_certs_volume + ':/certs/client:ro'] if ludus_jenkins_enable_dind else [])
+        ([ludus_jenkins_casc_build_dir + ':' + ludus_jenkins_casc_container_path + ':ro']
+          if ludus_jenkins_casc_enabled else [])
       }}
     env: "{{ ludus_jenkins_env }}"
 

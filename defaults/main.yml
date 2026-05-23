@@ -26,6 +26,8 @@ ludus_jenkins_plugins:
   - git
   - workflow-aggregator
   - configuration-as-code
+  - docker-plugin
+  - docker-workflow
 
 # Jenkins admin username and password (only used if ludus_jenkins_skip_setup_wizard is true)
 ludus_jenkins_admin_user: admin
@@ -40,9 +42,18 @@ ludus_jenkins_home: /var/jenkins_home
 # Docker-in-Docker support (required for building Docker images in pipelines)
 ludus_jenkins_enable_dind: true
 ludus_jenkins_dind_container_name: jenkins-docker
-ludus_jenkins_docker_certs_volume: jenkins-docker-certs
 
 # Custom Jenkins image (built locally with Docker CLI + plugins baked in)
 ludus_jenkins_custom_image: myjenkins
 ludus_jenkins_custom_image_tag: latest
 ludus_jenkins_dockerfile_build_dir: /tmp/jenkins-docker-build
+
+# Jenkins Configuration as Code (JCasC)
+ludus_jenkins_casc_enabled: true
+ludus_jenkins_casc_build_dir: /tmp/jenkins-casc
+ludus_jenkins_casc_container_path: /var/jenkins_home/casc_configs
+
+# Dynamic Docker agent configuration
+ludus_jenkins_docker_agent_image: jenkins/agent:latest
+ludus_jenkins_docker_agent_label: docker-agent
+ludus_jenkins_docker_agent_executors: 1
