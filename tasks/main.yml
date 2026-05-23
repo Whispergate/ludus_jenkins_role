@@ -9,17 +9,75 @@
     name: "{{ ludus_jenkins_data_volume }}"
     state: present
 
+- name: Create Jenkins Docker certs volume
+  community.docker.docker_volume:
+    name: "{{ ludus_jenkins_docker_certs_volume }}"
+    state: present
+  when: ludus_jenkins_enable_dind
+
+- name: Run Docker-in-Docker container
+  community.docker.docker_container:
+    name: "{{ ludus_jenkins_dind_container_name }}"
+    image: docker:dind
+    state: started
+    restart_policy: always
+    privileged: true
+    networks:
+      - name: "{{ ludus_jenkins_docker_network }}"
+        aliases:
+          - docker
+    env:
+      DOCKER_TLS_CERTDIR: /certs
+    volumes:
+      - "{{ ludus_jenkins_docker_certs_volume }}:/certs/client"
+      - "{{ ludus_jenkins_data_volume }}:{{ ludus_jenkins_home }}"
+    published_ports:
+      - "2376:2376"
+  when: ludus_jenkins_enable_dind
+
+- name: Create Dockerfile build directory
+  ansible.builtin.file:
+    path: "{{ ludus_jenkins_dockerfile_build_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Deploy Dockerfile template
+  ansible.builtin.template:
+    src: Dockerfile.j2
+    dest: "{{ ludus_jenkins_dockerfile_build_dir }}/Dockerfile"
+    mode: "0644"
+
+- name: Build custom Jenkins image
+  community.docker.docker_image:
+    name: "{{ ludus_jenkins_custom_image }}"
+    tag: "{{ ludus_jenkins_custom_image_tag }}"
+    source: build
+    build:
+      path: "{{ ludus_jenkins_dockerfile_build_dir }}"
+    state: present
+
 - name: Build Jenkins environment variables
   ansible.builtin.set_fact:
-    ludus_jenkins_env:
-      JAVA_OPTS: >-
-        {% if ludus_jenkins_skip_setup_wizard %}-Djenkins.install.runSetupWizard=false{% endif %}
-        {{ ludus_jenkins_java_args }}
+    ludus_jenkins_env: >-
+      {{
+        {
+          'JAVA_OPTS': (
+            ('-Djenkins.install.runSetupWizard=false ' if ludus_jenkins_skip_setup_wizard else '') +
+            ludus_jenkins_java_args
+          ) | trim
+        } | combine(
+          {
+            'DOCKER_HOST': 'tcp://docker:2376',
+            'DOCKER_CERT_PATH': '/certs/client',
+            'DOCKER_TLS_VERIFY': '1'
+          } if ludus_jenkins_enable_dind else {}
+        )
+      }}
 
 - name: Run Jenkins container
   community.docker.docker_container:
     name: "{{ ludus_jenkins_container_name }}"
-    image: "{{ ludus_jenkins_docker_image }}:{{ ludus_jenkins_docker_tag }}"
+    image: "{{ ludus_jenkins_custom_image }}:{{ ludus_jenkins_custom_image_tag }}"
     state: started
     restart_policy: on-failure
     networks:
@@ -27,8 +85,11 @@
     ports:
       - "{{ ludus_jenkins_http_port }}:8080"
       - "{{ ludus_jenkins_agent_port }}:50000"
-    volumes:
-      - "{{ ludus_jenkins_data_volume }}:{{ ludus_jenkins_home }}"
+    volumes: >-
+      {{
+        [ludus_jenkins_data_volume + ':' + ludus_jenkins_home] +
+        ([ludus_jenkins_docker_certs_volume + ':/certs/client:ro'] if ludus_jenkins_enable_dind else [])
+      }}
     env: "{{ ludus_jenkins_env }}"
 
 - name: Wait for Jenkins to start
@@ -40,11 +101,6 @@
   retries: 30
   delay: 5
   until: jenkins_status.status == 200
-
-- name: Install Jenkins plugins
-  ansible.builtin.include_tasks:
-    file: install_plugins.yml
-  when: ludus_jenkins_plugins | length > 0
 
 - name: Configure admin user
   ansible.builtin.include_tasks:

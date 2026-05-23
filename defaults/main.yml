@@ -36,3 +36,13 @@ ludus_jenkins_java_args: ""
 
 # Jenkins home directory inside the container
 ludus_jenkins_home: /var/jenkins_home
+
+# Docker-in-Docker support (required for building Docker images in pipelines)
+ludus_jenkins_enable_dind: true
+ludus_jenkins_dind_container_name: jenkins-docker
+ludus_jenkins_docker_certs_volume: jenkins-docker-certs
+
+# Custom Jenkins image (built locally with Docker CLI + plugins baked in)
+ludus_jenkins_custom_image: myjenkins
+ludus_jenkins_custom_image_tag: latest
+ludus_jenkins_dockerfile_build_dir: /tmp/jenkins-docker-build
