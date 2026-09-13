@@ -53,6 +53,23 @@ ludus_jenkins_casc_enabled: true
 ludus_jenkins_casc_build_dir: /tmp/jenkins-casc
 ludus_jenkins_casc_container_path: /var/jenkins_home/casc_configs
 
+# Static (permanent) inbound agent nodes to pre-create on the controller via
+# JCasC. Each runner VM running the ludus_jenkins_agent(_windows) role needs a
+# matching node here so it has a node to attach to and a secret to fetch.
+# The 'name' MUST match the agent's ludus_jenkins_agent_name (default: the
+# runner's inventory hostname). Empty by default (no static nodes).
+# Example:
+#   ludus_jenkins_static_agents:
+#     - name: MAA-runner-win01
+#       labels: "windows-msvc windows-dotnet"
+#       remote_fs: 'C:\Jenkins'
+#       executors: 2
+#     - name: MAA-runner-lin01
+#       labels: "linux-generic"
+#       remote_fs: /opt/jenkins-agent
+#       executors: 2
+ludus_jenkins_static_agents: []
+
 # Dynamic Docker agent configuration
 # When enabled, a JCasC "docker" cloud is configured for dynamic agents. This
 # requires the docker-plugin (Docker Cloud) plugin, which the role installs

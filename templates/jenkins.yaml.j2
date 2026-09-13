@@ -1,5 +1,24 @@
-{% if ludus_jenkins_docker_cloud_enabled %}
+{% if ludus_jenkins_docker_cloud_enabled or (ludus_jenkins_static_agents | default([]) | length > 0) %}
 jenkins:
+{% if ludus_jenkins_static_agents | default([]) | length > 0 %}
+  nodes:
+{% for agent in ludus_jenkins_static_agents %}
+    - permanent:
+        name: "{{ agent.name }}"
+        labelString: "{{ agent.labels | default('') }}"
+        remoteFS: '{{ agent.remote_fs | default("/home/jenkins/agent") }}'
+        numExecutors: {{ agent.executors | default(1) }}
+        mode: NORMAL
+        retentionStrategy: "always"
+        launcher:
+          inbound:
+            workDirSettings:
+              disabled: false
+              failIfWorkDirIsMissing: false
+              internalDir: "remoting"
+{% endfor %}
+{% endif %}
+{% if ludus_jenkins_docker_cloud_enabled %}
   clouds:
     - docker:
         name: "docker"
@@ -17,4 +36,5 @@ jenkins:
             connector:
               attach:
                 user: "jenkins"
+{% endif %}
 {% endif %}
