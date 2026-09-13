@@ -1,6 +1,7 @@
 ---
 dependencies:
   - role: geerlingguy.docker
+    version: "8.0.0"
 
 galaxy_info:
   role_name: ludus_jenkins
