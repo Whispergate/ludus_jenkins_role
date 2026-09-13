@@ -54,6 +54,10 @@ ludus_jenkins_casc_build_dir: /tmp/jenkins-casc
 ludus_jenkins_casc_container_path: /var/jenkins_home/casc_configs
 
 # Dynamic Docker agent configuration
+# When enabled, a JCasC "docker" cloud is configured for dynamic agents. This
+# requires the docker-plugin (Docker Cloud) plugin, which the role installs
+# automatically regardless of ludus_jenkins_plugins. Set to false to omit the
+# cloud block entirely (e.g. if you only want the base Jenkins server).
+ludus_jenkins_docker_cloud_enabled: true
 ludus_jenkins_docker_agent_image: jenkins/agent:latest
 ludus_jenkins_docker_agent_label: docker-agent
-ludus_jenkins_docker_agent_executors: 1

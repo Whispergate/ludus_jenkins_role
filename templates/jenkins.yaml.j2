@@ -1,3 +1,4 @@
+{% if ludus_jenkins_docker_cloud_enabled %}
 jenkins:
   clouds:
     - docker:
@@ -12,9 +13,8 @@ jenkins:
             remoteFs: "/home/jenkins/agent"
             instanceCapStr: "10"
             retentionStrategy:
-              dockerOnceRetentionStrategy:
-                idleMinutes: 5
+              idleMinutes: 5
             connector:
               attach:
                 user: "jenkins"
-            numExecutors: {{ ludus_jenkins_docker_agent_executors }}
+{% endif %}

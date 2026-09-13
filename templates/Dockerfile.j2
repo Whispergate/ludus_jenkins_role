@@ -10,6 +10,16 @@ RUN apt-get update && apt-get install -y lsb-release ca-certificates curl && \
     apt-get update && apt-get install -y docker-ce-cli && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 USER jenkins
-{% if ludus_jenkins_plugins | length > 0 %}
-RUN jenkins-plugin-cli --plugins "{{ ludus_jenkins_plugins | join(' ') }}"
+{# Plugins required by this role's features, merged with the user-supplied list #}
+{# so customizing ludus_jenkins_plugins can't drop a plugin the JCasC depends on. #}
+{% set _required_plugins = [] %}
+{% if ludus_jenkins_casc_enabled %}
+{%   set _required_plugins = _required_plugins + ['configuration-as-code'] %}
+{% endif %}
+{% if ludus_jenkins_casc_enabled and ludus_jenkins_docker_cloud_enabled %}
+{%   set _required_plugins = _required_plugins + ['docker-plugin'] %}
+{% endif %}
+{% set _all_plugins = (ludus_jenkins_plugins | default([]) + _required_plugins) | unique %}
+{% if _all_plugins | length > 0 %}
+RUN jenkins-plugin-cli --plugins "{{ _all_plugins | join(' ') }}"
 {% endif %}
