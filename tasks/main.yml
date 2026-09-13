@@ -72,6 +72,7 @@
     dest: "{{ ludus_jenkins_casc_build_dir }}/jenkins.yaml"
     mode: "0644"
   when: ludus_jenkins_casc_enabled
+  notify: Restart Jenkins
 
 - name: Build Jenkins environment variables
   ansible.builtin.set_fact:
@@ -153,3 +154,51 @@
   ansible.builtin.include_tasks:
     file: configure_admin.yml
   when: ludus_jenkins_skip_setup_wizard
+
+- name: Flush pending handlers before verifying static nodes
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for Jenkins after handler restart
+  ansible.builtin.uri:
+    url: "http://localhost:{{ ludus_jenkins_http_port }}/login"
+    method: GET
+    status_code: 200
+  register: jenkins_post_handler
+  retries: 30
+  delay: 5
+  until: jenkins_post_handler.status == 200
+  when: ludus_jenkins_casc_enabled
+
+- name: Check whether static agent nodes exist
+  ansible.builtin.uri:
+    url: "http://localhost:{{ ludus_jenkins_http_port }}/computer/{{ item.name }}/api/json"
+    method: GET
+    url_username: "{{ ludus_jenkins_admin_user }}"
+    url_password: "{{ ludus_jenkins_admin_password }}"
+    force_basic_auth: true
+    status_code: [200, 404]
+  register: ludus_jenkins_node_check
+  loop: "{{ ludus_jenkins_static_agents }}"
+  when: ludus_jenkins_static_agents | default([]) | length > 0
+
+- name: Restart Jenkins to apply JCasC (static nodes missing)
+  community.docker.docker_container:
+    name: "{{ ludus_jenkins_container_name }}"
+    state: started
+    restart: true
+  when: >-
+    ludus_jenkins_static_agents | default([]) | length > 0 and
+    ludus_jenkins_node_check.results | selectattr('status', 'equalto', 404) | list | length > 0
+
+- name: Wait for Jenkins after JCasC reload
+  ansible.builtin.uri:
+    url: "http://localhost:{{ ludus_jenkins_http_port }}/login"
+    method: GET
+    status_code: 200
+  register: jenkins_casc_reload_wait
+  retries: 30
+  delay: 5
+  until: jenkins_casc_reload_wait.status == 200
+  when: >-
+    ludus_jenkins_static_agents | default([]) | length > 0 and
+    ludus_jenkins_node_check.results | selectattr('status', 'equalto', 404) | list | length > 0
