@@ -53,8 +53,11 @@
     name: "{{ ludus_jenkins_custom_image }}"
     tag: "{{ ludus_jenkins_custom_image_tag }}"
     source: build
+    force_source: true
     build:
       path: "{{ ludus_jenkins_dockerfile_build_dir }}"
+      pull: false
+      nocache: true
     state: present
 
 - name: Create JCasC config directory
@@ -108,14 +111,44 @@
     env: "{{ ludus_jenkins_env }}"
 
 - name: Wait for Jenkins to start
-  ansible.builtin.uri:
-    url: "http://localhost:{{ ludus_jenkins_http_port }}/login"
-    method: GET
-    status_code: 200
-  register: jenkins_status
-  retries: 30
-  delay: 5
-  until: jenkins_status.status == 200
+  block:
+    - name: Poll Jenkins HTTP endpoint until ready
+      ansible.builtin.uri:
+        url: "http://localhost:{{ ludus_jenkins_http_port }}/login"
+        method: GET
+        status_code: 200
+      register: jenkins_status
+      retries: 30
+      delay: 5
+      until: jenkins_status.status == 200
+  rescue:
+    - name: Get Jenkins container state
+      community.docker.docker_container_info:
+        name: "{{ ludus_jenkins_container_name }}"
+      register: jenkins_container_info
+
+    - name: Fetch recent Jenkins container logs
+      ansible.builtin.command:
+        cmd: "docker logs --tail 100 {{ ludus_jenkins_container_name }}"
+      register: jenkins_logs
+      changed_when: false
+      failed_when: false
+
+    - name: Show Jenkins startup diagnostics
+      ansible.builtin.debug:
+        msg: >-
+          Jenkins did not become ready. Container status:
+          {{ jenkins_container_info.container.State.Status | default('unknown') }}
+          (exit code {{ jenkins_container_info.container.State.ExitCode | default('n/a') }}).
+          --- Last 100 log lines ---
+          {{ jenkins_logs.stdout | default('') }}
+          {{ jenkins_logs.stderr | default('') }}
+
+    - name: Fail with Jenkins startup error
+      ansible.builtin.fail:
+        msg: >-
+          Jenkins failed to start within the timeout. Review the container logs
+          shown above for the root cause (commonly a JCasC or plugin error).
 
 - name: Configure admin user
   ansible.builtin.include_tasks:
